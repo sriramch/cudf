@@ -351,6 +351,52 @@ __inline__ __device__ cudf::timestamp_ns decode_value(const char *data,
   return milli * 1000000;
 }
 
+// TODO : make this work for duration types
+template <>
+__inline__ __device__ cudf::duration_D decode_value(const char *data,
+                                                    long start,
+                                                    long end,
+                                                    ParseOptions const &opts)
+{
+  return cudf::duration_D{0};
+}
+
+template <>
+__inline__ __device__ cudf::duration_s decode_value(const char *data,
+                                                    long start,
+                                                    long end,
+                                                    ParseOptions const &opts)
+{
+  return cudf::duration_s{0};
+}
+
+template <>
+__inline__ __device__ cudf::duration_us decode_value(const char *data,
+                                                     long start,
+                                                     long end,
+                                                     ParseOptions const &opts)
+{
+  return cudf::duration_us{0};
+}
+
+template <>
+__inline__ __device__ cudf::duration_ms decode_value(const char *data,
+                                                     long start,
+                                                     long end,
+                                                     ParseOptions const &opts)
+{
+  return cudf::duration_ms{0};
+}
+
+template <>
+__inline__ __device__ cudf::duration_ns decode_value(const char *data,
+                                                     long start,
+                                                     long end,
+                                                     ParseOptions const &opts)
+{
+  return cudf::duration_ns{0};
+}
+
 // The purpose of this is merely to allow compilation ONLY
 // TODO : make this work for csv
 template <>

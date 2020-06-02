@@ -352,17 +352,18 @@ class string_scalar : public scalar {
  * @tparam T the data type of the timestamp value
  * @see cudf/wrappers/timestamps.hpp for a list of allowed types
  */
-template <typename T>
-class timestamp_scalar : public detail::fixed_width_scalar<T> {
-  static_assert(is_timestamp<T>(), "Unexpected non-timestamp type");
+template <typename T, typename CheckT>
+class chrono_scalar : public detail::fixed_width_scalar<T> {
+  static_assert(std::is_same<typename CheckT::type, std::true_type>::value,
+                "Unexpected chrono type");
 
  public:
-  timestamp_scalar()                              = default;
-  ~timestamp_scalar()                             = default;
-  timestamp_scalar(timestamp_scalar&& other)      = default;
-  timestamp_scalar(timestamp_scalar const& other) = default;
-  timestamp_scalar& operator=(timestamp_scalar const& other) = delete;
-  timestamp_scalar& operator=(timestamp_scalar&& other) = delete;
+  chrono_scalar()                           = default;
+  ~chrono_scalar()                          = default;
+  chrono_scalar(chrono_scalar&& other)      = default;
+  chrono_scalar(chrono_scalar const& other) = default;
+  chrono_scalar& operator=(chrono_scalar const& other) = delete;
+  chrono_scalar& operator=(chrono_scalar&& other) = delete;
 
   /**
    * @brief Construct a new timestamp scalar object
@@ -372,10 +373,10 @@ class timestamp_scalar : public detail::fixed_width_scalar<T> {
    * @param stream CUDA stream used for device memory operations.
    * @param mr Device memory resource to use for device memory allocation
    */
-  timestamp_scalar(T value,
-                   bool is_valid                       = true,
-                   cudaStream_t stream                 = 0,
-                   rmm::mr::device_memory_resource* mr = rmm::mr::get_default_resource())
+  chrono_scalar(T value,
+                bool is_valid                       = true,
+                cudaStream_t stream                 = 0,
+                rmm::mr::device_memory_resource* mr = rmm::mr::get_default_resource())
     : detail::fixed_width_scalar<T>(value, is_valid, stream, mr)
   {
   }
@@ -388,11 +389,11 @@ class timestamp_scalar : public detail::fixed_width_scalar<T> {
    * @param stream CUDA stream used for device memory operations.
    * @param mr Device memory resource to use for device memory allocation
    */
-  timestamp_scalar(typename T::duration::rep value,
-                   bool is_valid,
-                   cudaStream_t stream                 = 0,
-                   rmm::mr::device_memory_resource* mr = rmm::mr::get_default_resource())
-    : detail::fixed_width_scalar<T>(value, is_valid, stream, mr)
+  chrono_scalar(typename T::rep value,
+                bool is_valid,
+                cudaStream_t stream                 = 0,
+                rmm::mr::device_memory_resource* mr = rmm::mr::get_default_resource())
+    : detail::fixed_width_scalar<T>(T{value}, is_valid, stream, mr)
   {
   }
 
@@ -402,10 +403,10 @@ class timestamp_scalar : public detail::fixed_width_scalar<T> {
    * @param[in] data The scalar's data in device memory
    * @param[in] is_valid Whether the value held by the scalar is valid
    */
-  timestamp_scalar(rmm::device_scalar<T>&& data,
-                   bool is_valid                       = true,
-                   cudaStream_t stream                 = 0,
-                   rmm::mr::device_memory_resource* mr = rmm::mr::get_default_resource())
+  chrono_scalar(rmm::device_scalar<T>&& data,
+                bool is_valid                       = true,
+                cudaStream_t stream                 = 0,
+                rmm::mr::device_memory_resource* mr = rmm::mr::get_default_resource())
     : detail::fixed_width_scalar<T>(std::forward<rmm::device_scalar<T>>(data), is_valid, stream, mr)
   {
   }
@@ -413,7 +414,33 @@ class timestamp_scalar : public detail::fixed_width_scalar<T> {
   /**
    * @brief Return the duration in number of ticks since the UNIX epoch.
    */
-  typename T::duration::rep ticks_since_epoch() { return this->value().time_since_epoch().count(); }
+  template <typename ChronoT = T>
+  typename std::enable_if_t<
+    std::is_same<typename cudf::is_timestamp_t<ChronoT>::type, std::true_type>::value,
+    typename ChronoT::rep>
+  ticks_since_epoch()
+  {
+    return this->value().time_since_epoch().count();
+  }
+
+  template <typename ChronoT = T>
+  typename std::enable_if_t<
+    std::is_same<typename cudf::is_duration_t<ChronoT>::type, std::true_type>::value,
+    typename ChronoT::rep>
+  ticks_since_epoch()
+  {
+    return this->value().count();
+  }
+};
+
+template <typename T>
+struct timestamp_scalar : chrono_scalar<T, cudf::is_timestamp_t<T>> {
+  using chrono_scalar<T, cudf::is_timestamp_t<T>>::chrono_scalar;
+};
+
+template <typename T>
+struct duration_scalar : chrono_scalar<T, cudf::is_duration_t<T>> {
+  using chrono_scalar<T, cudf::is_duration_t<T>>::chrono_scalar;
 };
 
 }  // namespace cudf

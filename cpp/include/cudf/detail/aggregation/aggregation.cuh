@@ -380,7 +380,19 @@ struct identity_initializer {
   }
 
   template <typename T, aggregation::Kind k>
-  T get_identity()
+  typename std::enable_if_t<!std::is_same<T, bool>::value, T> get_identity()
+  {
+    if (k == aggregation::ARGMAX)
+      return T{ARGMAX_SENTINEL};
+    else if (k == aggregation::ARGMIN)
+      return T{ARGMIN_SENTINEL};
+    else
+      // In C++17, we can use compile time if and not make this function SFINAE
+      return identity_from_operator<T, k>();
+  }
+
+  template <typename T, aggregation::Kind k>
+  typename std::enable_if_t<std::is_same<T, bool>::value, bool> get_identity()
   {
     if (k == aggregation::ARGMAX)
       return ARGMAX_SENTINEL;

@@ -37,8 +37,10 @@ using time_point = simt::std::chrono::time_point<simt::std::chrono::system_clock
 template <class Duration>
 struct timestamp : time_point<Duration> {
   constexpr timestamp() : time_point<Duration>(Duration()){};
+
+  // Allow for implicit conversion from Duration
   constexpr timestamp(Duration d) : time_point<Duration>(d){};
-  constexpr timestamp(typename Duration::rep r) : time_point<Duration>(Duration(r)){};
+
   /**
    * @brief Constructs a new timestamp by copying the contents of another
    * `time_point` and converting its duration value if necessary.
@@ -47,9 +49,48 @@ struct timestamp : time_point<Duration> {
    */
   template <class FromDuration>
   inline constexpr explicit timestamp(time_point<FromDuration> const& other)
-    : time_point<Duration>(simt::std::chrono::duration_cast<Duration>(other.time_since_epoch())){};
+    : time_point<Duration>(other){};
+
+  // Duration have to be explicitly initialized with tick counts.
+  // This allows construction of timestamps with tickcounts directly without having to create
+  // a duration first.
+  constexpr timestamp(typename Duration::rep r) : time_point<Duration>(Duration(r)){};
 };
 }  // namespace detail
+
+/**
+ * @addtogroup duration_types Duration
+ * @{
+ */
+
+/**
+ * @brief Type alias representing an int32_t time interval of days
+ **/
+using duration_D = simt::std::chrono::days;
+/**
+ * @brief Type alias representing an int64_t time interval of seconds
+ **/
+using duration_s = simt::std::chrono::seconds;
+/**
+ * @brief Type alias representing an int64_t time interval of milliseconds
+ **/
+using duration_ms = simt::std::chrono::milliseconds;
+/**
+ * @brief Type alias representing an int64_t time interval of microseconds
+ **/
+using duration_us = simt::std::chrono::microseconds;
+/**
+ * @brief Type alias representing an int64_t time interval of seconds
+ **/
+using duration_ns = simt::std::chrono::nanoseconds;
+
+static_assert(sizeof(duration_D) == sizeof(typename duration_D::rep), "");
+static_assert(sizeof(duration_s) == sizeof(typename duration_s::rep), "");
+static_assert(sizeof(duration_ms) == sizeof(typename duration_ms::rep), "");
+static_assert(sizeof(duration_us) == sizeof(typename duration_us::rep), "");
+static_assert(sizeof(duration_ns) == sizeof(typename duration_ns::rep), "");
+
+/** @} */  // end of group
 
 /**
  * @addtogroup timestamp_classes Timestamp
@@ -57,31 +98,30 @@ struct timestamp : time_point<Duration> {
  */
 
 /**
- * @brief Type alias representing an int32_t duration of days since the unix
+ * @brief Type alias representing an int32_t point in time in days since the unix
  * epoch.
  **/
-using timestamp_D =
-  detail::timestamp<simt::std::chrono::duration<int32_t, simt::std::ratio<86400>>>;
+using timestamp_D = detail::timestamp<duration_D>;
 /**
- * @brief Type alias representing an int64_t duration of seconds since the
+ * @brief Type alias representing an int64_t point in time in seconds since the
  * unix epoch.
  **/
-using timestamp_s = detail::timestamp<simt::std::chrono::duration<int64_t, simt::std::ratio<1>>>;
+using timestamp_s = detail::timestamp<duration_s>;
 /**
- * @brief Type alias representing an int64_t duration of milliseconds since
+ * @brief Type alias representing an int64_t point in time in milliseconds since
  * the unix epoch.
  **/
-using timestamp_ms = detail::timestamp<simt::std::chrono::duration<int64_t, simt::std::milli>>;
+using timestamp_ms = detail::timestamp<duration_ms>;
 /**
- * @brief Type alias representing an int64_t duration of microseconds since
+ * @brief Type alias representing an int64_t point in time in microseconds since
  * the unix epoch.
  **/
-using timestamp_us = detail::timestamp<simt::std::chrono::duration<int64_t, simt::std::micro>>;
+using timestamp_us = detail::timestamp<duration_us>;
 /**
- * @brief Type alias representing an int64_t duration of nanoseconds since
+ * @brief Type alias representing an int64_t point in time in nanoseconds since
  * the unix epoch.
  **/
-using timestamp_ns = detail::timestamp<simt::std::chrono::duration<int64_t, simt::std::nano>>;
+using timestamp_ns = detail::timestamp<duration_ns>;
 
 static_assert(sizeof(timestamp_D) == sizeof(typename timestamp_D::rep), "");
 static_assert(sizeof(timestamp_s) == sizeof(typename timestamp_s::rep), "");
@@ -94,33 +134,38 @@ static_assert(sizeof(timestamp_ns) == sizeof(typename timestamp_ns::rep), "");
 
 namespace std {
 /**
- * @brief Specialization of std::numeric_limits for cudf::detail::timestamp
+ * @brief Specialization of std::numeric_limits for cudf::detail::timestamp and duration types.
  *
  * Pass through to return the limits of the underlying numeric representation.
  **/
-#define TIMESTAMP_LIMITS(TypeName)                                  \
-  template <>                                                       \
-  struct numeric_limits<TypeName> {                                 \
-    static constexpr TypeName max() noexcept                        \
-    {                                                               \
-      return std::numeric_limits<typename TypeName::rep>::max();    \
-    }                                                               \
-    static constexpr TypeName lowest() noexcept                     \
-    {                                                               \
-      return std::numeric_limits<typename TypeName::rep>::lowest(); \
-    }                                                               \
-    static constexpr TypeName min() noexcept                        \
-    {                                                               \
-      return std::numeric_limits<typename TypeName::rep>::min();    \
-    }                                                               \
+#define CHRONO_LIMITS(TypeName)                                               \
+  template <>                                                                 \
+  struct numeric_limits<TypeName> {                                           \
+    static constexpr TypeName max() noexcept                                  \
+    {                                                                         \
+      return TypeName{std::numeric_limits<typename TypeName::rep>::max()};    \
+    }                                                                         \
+    static constexpr TypeName lowest() noexcept                               \
+    {                                                                         \
+      return TypeName{std::numeric_limits<typename TypeName::rep>::lowest()}; \
+    }                                                                         \
+    static constexpr TypeName min() noexcept                                  \
+    {                                                                         \
+      return TypeName{std::numeric_limits<typename TypeName::rep>::min()};    \
+    }                                                                         \
   }
 
-TIMESTAMP_LIMITS(cudf::timestamp_D);
-TIMESTAMP_LIMITS(cudf::timestamp_s);
-TIMESTAMP_LIMITS(cudf::timestamp_ms);
-TIMESTAMP_LIMITS(cudf::timestamp_us);
-TIMESTAMP_LIMITS(cudf::timestamp_ns);
+CHRONO_LIMITS(cudf::timestamp_D);
+CHRONO_LIMITS(cudf::timestamp_s);
+CHRONO_LIMITS(cudf::timestamp_ms);
+CHRONO_LIMITS(cudf::timestamp_us);
+CHRONO_LIMITS(cudf::timestamp_ns);
+CHRONO_LIMITS(cudf::duration_D);
+CHRONO_LIMITS(cudf::duration_s);
+CHRONO_LIMITS(cudf::duration_ms);
+CHRONO_LIMITS(cudf::duration_us);
+CHRONO_LIMITS(cudf::duration_ns);
 
-#undef TIMESTAMP_LIMITS
+#undef CHRONO_LIMITS
 
 }  // namespace std

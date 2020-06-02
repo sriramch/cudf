@@ -342,6 +342,12 @@ struct column_view_printer {
   {
     CUDF_FAIL("list_view printing not supported yet");
   }
+
+  template <typename Element, typename std::enable_if_t<is_duration<Element>()>* = nullptr>
+  void operator()(cudf::column_view const& col, std::vector<std::string>& out)
+  {
+    CUDF_FAIL("stringifying duration column not supported yet");
+  }
 };
 
 std::vector<std::string> to_strings(cudf::column_view const& col)
