@@ -179,6 +179,18 @@ TEST_F(ColumnUtilitiesStringsTest, StringsToHostAllNulls)
   EXPECT_TRUE(std::all_of(results.begin(), results.end(), [](auto s) { return s.empty(); }));
 }
 
+TEST_F(ColumnUtilitiesStringsTest, PrintColumnDuration)
+{
+  const char* delimiter = ",";
+
+  cudf::test::fixed_width_column_wrapper<cudf::duration_s> cudf_col(
+    cudf::test::make_fixed_width_column_with_type_param<cudf::duration_s>({100, 0, 7, 140000}));
+
+  auto expected = "100 seconds,0 seconds,7 seconds,140000 seconds";
+
+  EXPECT_EQ(cudf::test::to_string(cudf_col, delimiter), expected);
+}
+
 TYPED_TEST(ColumnUtilitiesTestIntegral, PrintColumnNumeric)
 {
   const char* delimiter = ",";
