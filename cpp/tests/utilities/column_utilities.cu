@@ -375,44 +375,19 @@ static auto numeric_to_string_precise(T value)
   return o.str();
 }
 
-template <typename T,
-          typename std::enable_if_t<std::is_same<T, cudf::duration_D>::value>* = nullptr>
-static auto duration_suffix(T)
-{
-  return " days";
-}
+static auto duration_suffix(cudf::duration_D) { return " days"; }
 
-template <typename T,
-          typename std::enable_if_t<std::is_same<T, cudf::duration_s>::value>* = nullptr>
-static auto duration_suffix(T)
-{
-  return " seconds";
-}
+static auto duration_suffix(cudf::duration_s) { return " seconds"; }
 
-template <typename T,
-          typename std::enable_if_t<std::is_same<T, cudf::duration_ms>::value>* = nullptr>
-static auto duration_suffix(T)
-{
-  return " milliseconds";
-}
+static auto duration_suffix(cudf::duration_ms) { return " milliseconds"; }
 
-template <typename T,
-          typename std::enable_if_t<std::is_same<T, cudf::duration_us>::value>* = nullptr>
-static auto duration_suffix(T)
-{
-  return " microseconds";
-}
+static auto duration_suffix(cudf::duration_us) { return " microseconds"; }
 
-template <typename T,
-          typename std::enable_if_t<std::is_same<T, cudf::duration_ns>::value>* = nullptr>
-static auto duration_suffix(T)
-{
-  return " nanoseconds";
-}
+static auto duration_suffix(cudf::duration_ns) { return " nanoseconds"; }
 
 std::string get_nested_type_str(cudf::column_view const& view)
 {
-  if (view.type().id() == cudf::LIST) {
+  if (view.type().id() == cudf::type_id::LIST) {
     lists_column_view lcv(view);
     return cudf::jit::get_type_name(view.type()) + "<" +
            (lcv.size() > 0 ? get_nested_type_str(lcv.child()) : "") + ">";
@@ -493,7 +468,7 @@ struct column_view_printer {
     cudf::dictionary_column_view dictionary(col);
     if (col.size() == 0) return;
     std::vector<std::string> keys    = to_strings(dictionary.keys());
-    std::vector<std::string> indices = to_strings({cudf::data_type{cudf::INT32},
+    std::vector<std::string> indices = to_strings({cudf::data_type{cudf::type_id::INT32},
                                                    dictionary.size(),
                                                    dictionary.indices().head<int32_t>(),
                                                    dictionary.null_mask(),
