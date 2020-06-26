@@ -86,6 +86,20 @@ auto make_type_param_vector(std::initializer_list<T> const& init_list)
   return vec;
 }
 
+template <typename TypeParam, typename T>
+typename std::enable_if<!cudf::is_timestamp_t<TypeParam>::value, TypeParam>::type
+make_type_param_scalar(T const init_value)
+{
+  return static_cast<TypeParam>(init_value);
+}
+
+template <typename TypeParam, typename T>
+typename std::enable_if<cudf::is_timestamp_t<TypeParam>::value, TypeParam>::type
+make_type_param_scalar(T const init_value)
+{
+  return TypeParam{typename TypeParam::duration(init_value)};
+}
+
 /**
  * @brief Type list for all integral types except type bool.
  */

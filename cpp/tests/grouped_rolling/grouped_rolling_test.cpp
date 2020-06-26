@@ -503,16 +503,21 @@ TEST_F(GroupedRollingErrorTest, EmptyInput)
 TEST_F(GroupedRollingErrorTest, SumTimestampNotSupported)
 {
   constexpr size_type size{10};
-  fixed_width_column_wrapper<cudf::timestamp_D> input_D(thrust::make_counting_iterator(0),
-                                                        thrust::make_counting_iterator(size));
-  fixed_width_column_wrapper<cudf::timestamp_s> input_s(thrust::make_counting_iterator(0),
-                                                        thrust::make_counting_iterator(size));
-  fixed_width_column_wrapper<cudf::timestamp_ms> input_ms(thrust::make_counting_iterator(0),
-                                                          thrust::make_counting_iterator(size));
-  fixed_width_column_wrapper<cudf::timestamp_us> input_us(thrust::make_counting_iterator(0),
-                                                          thrust::make_counting_iterator(size));
-  fixed_width_column_wrapper<cudf::timestamp_ns> input_ns(thrust::make_counting_iterator(0),
-                                                          thrust::make_counting_iterator(size));
+  fixed_width_column_wrapper<cudf::timestamp_D> input_D =
+    cudf::test::make_fixed_width_column_with_type_param<cudf::timestamp_D>(
+      thrust::make_counting_iterator(0), thrust::make_counting_iterator(size));
+  fixed_width_column_wrapper<cudf::timestamp_s> input_s =
+    cudf::test::make_fixed_width_column_with_type_param<cudf::timestamp_s>(
+      thrust::make_counting_iterator(0), thrust::make_counting_iterator(size));
+  fixed_width_column_wrapper<cudf::timestamp_ms> input_ms =
+    cudf::test::make_fixed_width_column_with_type_param<cudf::timestamp_ms>(
+      thrust::make_counting_iterator(0), thrust::make_counting_iterator(size));
+  fixed_width_column_wrapper<cudf::timestamp_us> input_us =
+    cudf::test::make_fixed_width_column_with_type_param<cudf::timestamp_us>(
+      thrust::make_counting_iterator(0), thrust::make_counting_iterator(size));
+  fixed_width_column_wrapper<cudf::timestamp_ns> input_ns =
+    cudf::test::make_fixed_width_column_with_type_param<cudf::timestamp_ns>(
+      thrust::make_counting_iterator(0), thrust::make_counting_iterator(size));
 
   // Construct table-view of grouping keys.
   std::vector<size_type> grouping_keys_vec(size, 0);  // `size` elements, each == 0.
@@ -543,16 +548,17 @@ TYPED_TEST_CASE(GroupedRollingTest, FixedWidthWithoutDurationTypes);
 
 TYPED_TEST(GroupedRollingTest, SimplePartitionedStaticWindowsWithGroupKeys)
 {
-  const auto col_data =
-    cudf::test::make_type_param_vector<TypeParam>({0, 10, 20, 30, 40, 50, 60, 70, 80, 90});
+  const auto col_data = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90};
   const size_type DATA_SIZE{static_cast<size_type>(col_data.size())};
   const std::vector<bool> col_mask(DATA_SIZE, true);
-  fixed_width_column_wrapper<TypeParam> input(col_data.begin(), col_data.end(), col_mask.begin());
+  fixed_width_column_wrapper<TypeParam> input =
+    cudf::test::make_fixed_width_column_with_type_param<TypeParam>(
+      col_data.begin(), col_data.end(), col_mask.begin());
 
   // 2 grouping keys, with effectively 3 groups of at most 4 rows each:
   //   1. key_0 {0, 0, 0, ...0}
   //   2. key_1 {0, 0, 0, 0, 1, 1, 1, 1, 2, 2}
-  std::vector<TypeParam> key_0_vec(DATA_SIZE, 0);
+  std::vector<TypeParam> key_0_vec(DATA_SIZE, cudf::test::make_type_param_scalar<TypeParam>(0));
   std::vector<TypeParam> key_1_vec;
   int i{0};
   std::generate_n(
@@ -599,7 +605,7 @@ TYPED_TEST(GroupedRollingTest, AllInvalid)
   // 2 grouping keys, with effectively 3 groups of at most 4 rows each:
   //   1. key_0 {0, 0, 0, ...0}
   //   2. key_1 {0, 0, 0, 0, 1, 1, 1, 1, 2, 2}
-  std::vector<TypeParam> key_0_vec(DATA_SIZE, 0);
+  std::vector<TypeParam> key_0_vec(DATA_SIZE, cudf::test::make_type_param_scalar<TypeParam>(0));
   std::vector<TypeParam> key_1_vec;
   int i{0};
   std::generate_n(
@@ -619,16 +625,17 @@ TYPED_TEST(GroupedRollingTest, AllInvalid)
 // window = following_window = 0
 TYPED_TEST(GroupedRollingTest, ZeroWindow)
 {
-  const auto col_data =
-    cudf::test::make_type_param_vector<TypeParam>({0, 10, 20, 30, 40, 50, 60, 70, 80, 90});
+  const auto col_data = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90};
   const size_type DATA_SIZE{static_cast<size_type>(col_data.size())};
   const std::vector<bool> col_mask(DATA_SIZE, true);
-  fixed_width_column_wrapper<TypeParam> input(col_data.begin(), col_data.end(), col_mask.begin());
+  fixed_width_column_wrapper<TypeParam> input =
+    cudf::test::make_fixed_width_column_with_type_param<TypeParam>(
+      col_data.begin(), col_data.end(), col_mask.begin());
 
   // 2 grouping keys, with effectively 3 groups of at most 4 rows each:
   //   1. key_0 {0, 0, 0, ...0}
   //   2. key_1 {0, 0, 0, 0, 1, 1, 1, 1, 2, 2}
-  std::vector<TypeParam> key_0_vec(DATA_SIZE, 0);
+  std::vector<TypeParam> key_0_vec(DATA_SIZE, cudf::test::make_type_param_scalar<TypeParam>(0));
   std::vector<TypeParam> key_1_vec;
   int i{0};
   std::generate_n(
@@ -1138,14 +1145,15 @@ TYPED_TEST(GroupedTimeRangeRollingTest,
            SimplePartitionedStaticWindowsWithGroupKeysAndTimeRangesAscending)
 {
   const size_type DATA_SIZE{static_cast<size_type>(18)};
-  const std::vector<TypeParam> col_data(DATA_SIZE, 1);
+  const std::vector<TypeParam> col_data(DATA_SIZE,
+                                        cudf::test::make_type_param_scalar<TypeParam>(1));
   const std::vector<bool> col_mask(DATA_SIZE, true);
   fixed_width_column_wrapper<TypeParam> input(col_data.begin(), col_data.end(), col_mask.begin());
 
   // 2 grouping keys, with effectively 3 groups of at most 6 rows each:
   //   1. key_0 {0, 0, 0, ...0}
   //   2. key_1 {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2}
-  std::vector<TypeParam> key_0_vec(DATA_SIZE, 0);
+  std::vector<TypeParam> key_0_vec(DATA_SIZE, cudf::test::make_type_param_scalar<TypeParam>(0));
   std::vector<TypeParam> key_1_vec;
   int i{0};
   std::generate_n(
@@ -1177,14 +1185,15 @@ TYPED_TEST(GroupedTimeRangeRollingTest,
            SimplePartitionedStaticWindowsWithGroupKeysAndTimeRangesDescending)
 {
   const size_type DATA_SIZE{static_cast<size_type>(18)};
-  const std::vector<TypeParam> col_data(DATA_SIZE, 1);
+  const std::vector<TypeParam> col_data(DATA_SIZE,
+                                        cudf::test::make_type_param_scalar<TypeParam>(1));
   const std::vector<bool> col_mask(DATA_SIZE, true);
   fixed_width_column_wrapper<TypeParam> input(col_data.begin(), col_data.end(), col_mask.begin());
 
   // 2 grouping keys, with effectively 3 groups of at most 6 rows each:
   //   1. key_0 {0, 0, 0, ...0}
   //   2. key_1 {0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2}
-  std::vector<TypeParam> key_0_vec(DATA_SIZE, 0);
+  std::vector<TypeParam> key_0_vec(DATA_SIZE, cudf::test::make_type_param_scalar<TypeParam>(0));
   std::vector<TypeParam> key_1_vec;
   int i{0};
   std::generate_n(
@@ -1214,7 +1223,8 @@ TYPED_TEST(GroupedTimeRangeRollingTest,
 TYPED_TEST(GroupedTimeRangeRollingTest, SimplePartitionedStaticWindowsWithNoGroupingKeys)
 {
   const size_type DATA_SIZE{static_cast<size_type>(6)};
-  const std::vector<TypeParam> col_data(DATA_SIZE, 1);
+  const std::vector<TypeParam> col_data(DATA_SIZE,
+                                        cudf::test::make_type_param_scalar<TypeParam>(1));
   const std::vector<bool> col_mask(DATA_SIZE, true);
   fixed_width_column_wrapper<TypeParam> input(col_data.begin(), col_data.end(), col_mask.begin());
 

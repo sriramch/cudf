@@ -49,7 +49,7 @@ struct DeviceSum {
   template <typename T>
   static constexpr T identity()
   {
-    return T{0};
+    return {};
   }
 };
 

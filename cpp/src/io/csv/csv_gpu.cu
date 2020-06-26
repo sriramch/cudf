@@ -310,7 +310,8 @@ __inline__ __device__ cudf::timestamp_D decode_value(const char *data,
                                                      long end,
                                                      ParseOptions const &opts)
 {
-  return parseDateFormat(data, start, end, opts.dayfirst);
+  return timestamp_D{
+    typename timestamp_D::duration{parseDateFormat(data, start, end, opts.dayfirst)}};
 }
 
 template <>
@@ -320,7 +321,7 @@ __inline__ __device__ cudf::timestamp_s decode_value(const char *data,
                                                      ParseOptions const &opts)
 {
   auto milli = parseDateTimeFormat(data, start, end, opts.dayfirst);
-  return milli / 1000;
+  return timestamp_s{typename timestamp_s::duration{milli / 1000}};
 }
 
 template <>
@@ -330,7 +331,7 @@ __inline__ __device__ cudf::timestamp_ms decode_value(const char *data,
                                                       ParseOptions const &opts)
 {
   auto milli = parseDateTimeFormat(data, start, end, opts.dayfirst);
-  return milli;
+  return timestamp_ms{typename timestamp_ms::duration{milli}};
 }
 
 template <>
@@ -340,7 +341,7 @@ __inline__ __device__ cudf::timestamp_us decode_value(const char *data,
                                                       ParseOptions const &opts)
 {
   auto milli = parseDateTimeFormat(data, start, end, opts.dayfirst);
-  return milli * 1000;
+  return timestamp_us{typename timestamp_us::duration{milli * 1000}};
 }
 
 template <>
@@ -350,7 +351,7 @@ __inline__ __device__ cudf::timestamp_ns decode_value(const char *data,
                                                       ParseOptions const &opts)
 {
   auto milli = parseDateTimeFormat(data, start, end, opts.dayfirst);
-  return milli * 1000000;
+  return timestamp_ns{typename timestamp_ns::duration{milli * 1000000}};
 }
 
 // The purpose of this is merely to allow compilation ONLY
