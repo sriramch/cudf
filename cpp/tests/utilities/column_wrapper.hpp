@@ -140,25 +140,21 @@ struct fixed_width_type_converter {
     convert_elements(begin, end, out, [](auto const& e) { return static_cast<TargT>(e); });
   }
 
-#if 0
   // This is to be used when timestamp disallows construction from tick counts; presently,
   // this conflicts with the convertible/constructible overload
   // Convert integral values to timestamps
   template <
-    typename SrcT                        = SourceT,
-    typename TargT                       = TargetT,
-    typename InputIterator, typename OutputIterator,
+    typename SrcT  = SourceT,
+    typename TargT = TargetT,
+    typename InputIterator,
+    typename OutputIterator,
     typename std::enable_if<std::is_integral<SrcT>::value && cudf::is_timestamp_t<TargT>::value,
                             void>::type* = nullptr>
-  void operator()(InputIterator begin,
-                  InputIterator end,
-                  OutputIterator out
-                  ) const
+  void operator()(InputIterator begin, InputIterator end, OutputIterator out) const
   {
     convert_elements(
       begin, end, out, [](auto const& e) { return TargT{typename TargT::duration{e}}; });
   }
-#endif
 
   // Convert timestamps to arithmetic values
   template <
@@ -217,7 +213,8 @@ rmm::device_buffer make_elements(InputIterator begin, InputIterator end)
 {
   static_assert(cudf::is_fixed_width<ElementTo>(), "Unexpected non-fixed width type.");
   cudf::size_type size = std::distance(begin, end);
-  thrust::host_vector<ElementTo> elements(size);
+  thrust::host_vector<ElementTo> elements;
+  elements.reserve(size);
   fixed_width_type_converter<ElementFrom, ElementTo>{}(begin, end, elements.begin());
   return rmm::device_buffer{elements.data(), size * sizeof(ElementTo)};
 }

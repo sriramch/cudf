@@ -37,7 +37,7 @@ void test_udf(const char udf[], Op op, Data data_init, cudf::size_type size, boo
   auto all_valid = cudf::test::make_counting_transform_iterator(0, [](auto i) { return true; });
   auto data_iter = cudf::test::make_counting_transform_iterator(0, data_init);
 
-  auto in = cudf::test::make_fixed_width_column_with_type_param<dtype>(
+  cudf::test::fixed_width_column_wrapper<dtype, typename decltype(data_iter)::value_type> in(
     data_iter, data_iter + size, all_valid);
 
   std::unique_ptr<cudf::column> out =

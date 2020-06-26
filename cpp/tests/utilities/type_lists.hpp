@@ -74,7 +74,8 @@ constexpr auto types_to_ids()
  * @return Vector of TypeParam with the values specified
  */
 template <typename TypeParam, typename T>
-auto make_type_param_vector(std::initializer_list<T> const& init_list)
+typename std::enable_if<!cudf::is_timestamp_t<TypeParam>::value, std::vector<TypeParam>>::type
+make_type_param_vector(std::initializer_list<T> const& init_list)
 {
   std::vector<TypeParam> vec(init_list.size());
   std::transform(std::cbegin(init_list), std::cend(init_list), std::begin(vec), [](auto const& e) {
@@ -82,6 +83,17 @@ auto make_type_param_vector(std::initializer_list<T> const& init_list)
       return static_cast<TypeParam>(std::abs(e));
     else
       return static_cast<TypeParam>(e);
+  });
+  return vec;
+}
+
+template <typename TypeParam, typename T>
+typename std::enable_if<cudf::is_timestamp_t<TypeParam>::value, std::vector<TypeParam>>::type
+make_type_param_vector(std::initializer_list<T> const& init_list)
+{
+  std::vector<TypeParam> vec(init_list.size());
+  std::transform(std::cbegin(init_list), std::cend(init_list), std::begin(vec), [](auto const& e) {
+    return TypeParam{typename TypeParam::duration{e}};
   });
   return vec;
 }
