@@ -33,6 +33,7 @@ struct ListColumnWrapperTestTyped : public cudf::test::BaseFixture {
 
 using FixedWidthTypesNotBool = cudf::test::Concat<cudf::test::IntegralTypesNotBool,
                                                   cudf::test::FloatingPointTypes,
+                                                  // cudf::test::DurationTypes,
                                                   cudf::test::TimestampTypes>;
 TYPED_TEST_CASE(ListColumnWrapperTestTyped, FixedWidthTypesNotBool);
 

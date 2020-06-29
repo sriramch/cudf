@@ -69,16 +69,17 @@ class FillTypedTestFixture : public cudf::test::BaseFixture {
     static_cast<ScalarType*>(p_val.get())->set_value(value);
     static_cast<ScalarType*>(p_val.get())->set_valid(value_is_valid);
 
-    auto expected_elements = cudf::test::make_counting_transform_iterator(
-      0,
-      [begin, end, value](auto i) { return (i >= begin && i < end) ? value : static_cast<T>(i); });
-    cudf::test::fixed_width_column_wrapper<T, typename decltype(expected_elements)::value_type>
-      expected(expected_elements,
-               expected_elements + size,
-               cudf::test::make_counting_transform_iterator(
-                 0, [begin, end, value_is_valid, destination_validity](auto i) {
-                   return (i >= begin && i < end) ? value_is_valid : destination_validity(i);
-                 }));
+    auto expected_elements =
+      cudf::test::make_counting_transform_iterator(0, [begin, end, value](auto i) {
+        return (i >= begin && i < end) ? value : cudf::test::make_type_param_scalar<T>(i);
+      });
+    cudf::test::fixed_width_column_wrapper<T> expected(
+      expected_elements,
+      expected_elements + size,
+      cudf::test::make_counting_transform_iterator(
+        0, [begin, end, value_is_valid, destination_validity](auto i) {
+          return (i >= begin && i < end) ? value_is_valid : destination_validity(i);
+        }));
 
     // test out-of-place version first
 

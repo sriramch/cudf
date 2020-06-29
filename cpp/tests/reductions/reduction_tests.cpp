@@ -562,7 +562,7 @@ TEST_F(ReductionDtypeTest, different_precision)
     cudf::timestamp_us{cudf::duration_us(expected_value)},
     false,
     sum_agg,
-    cudf::data_type(cudf::TIMESTAMP_MICROSECONDS));
+    cudf::data_type(cudf::type_id::TIMESTAMP_MICROSECONDS));
 
   /*TODO reimplement after Dictionary support
     this->reduction_test<cudf::timestamp_s, cudf::category>
