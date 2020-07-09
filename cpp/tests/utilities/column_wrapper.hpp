@@ -43,7 +43,7 @@ namespace test {
  * `thrust::counting_iterator`.
  *
  * Example:
- * ```
+ * @code{.cpp}
  * // Returns square of the value of the counting iterator
  * auto iter = make_counting_transform_iterator(0, [](auto i){ return (i * i);});
  * iter[0] == 0
@@ -51,7 +51,7 @@ namespace test {
  * iter[2] == 4
  * ...
  * iter[n] == n * n
- * ```
+ * @endcode
  *
  * @param start The starting value of the counting iterator
  * @param f The unary function to apply to the counting iterator.
@@ -107,14 +107,6 @@ class column_wrapper {
  **/
 template <typename SourceT, typename TargetT>
 struct fixed_width_type_converter {
- private:
-  template <typename InputIterator, typename OutputIterator, typename Lambda>
-  void convert_elements(InputIterator begin, InputIterator end, OutputIterator out, Lambda l) const
-  {
-    std::transform(begin, end, out, l);
-  }
-
- public:
   // Are the types same - simply copy elements from [begin, end) to out
   template <typename SrcT  = SourceT,
             typename TargT = TargetT,
@@ -137,7 +129,7 @@ struct fixed_width_type_converter {
                                     void>::type* = nullptr>
   void operator()(InputIterator begin, InputIterator end, OutputIterator out) const
   {
-    convert_elements(begin, end, out, [](auto const& e) { return static_cast<TargT>(e); });
+    std::transform(begin, end, out, [](auto const& e) { return static_cast<TargT>(e); });
   }
 
   // This is to be used when timestamp disallows construction from tick counts; presently,
@@ -152,7 +144,7 @@ struct fixed_width_type_converter {
                             void>::type* = nullptr>
   void operator()(InputIterator begin, InputIterator end, OutputIterator out) const
   {
-    convert_elements(
+      std::transform(
       begin, end, out, [](auto const& e) { return TargT{typename TargT::duration{e}}; });
   }
 
@@ -166,7 +158,7 @@ struct fixed_width_type_converter {
                             void>::type* = nullptr>
   void operator()(InputIterator begin, InputIterator end, OutputIterator out) const
   {
-    convert_elements(begin, end, out, [](auto const& e) {
+    std::transform(begin, end, out, [](auto const& e) {
       return static_cast<TargT>(e.time_since_epoch().count());
     });
   }
@@ -181,7 +173,7 @@ struct fixed_width_type_converter {
                             void>::type* = nullptr>
   void operator()(InputIterator begin, InputIterator end, OutputIterator out) const
   {
-    convert_elements(begin, end, out, [](auto const& e) { return TargT{e.time_since_epoch()}; });
+    std::transform(begin, end, out, [](auto const& e) { return TargT{e.time_since_epoch()}; });
   }
 
   // Convert duration to arithmetic values
@@ -194,7 +186,7 @@ struct fixed_width_type_converter {
                             void>::type* = nullptr>
   void operator()(InputIterator begin, InputIterator end, OutputIterator out) const
   {
-    convert_elements(begin, end, out, [](auto const& e) { return static_cast<TargT>(e.count()); });
+    std::transform(begin, end, out, [](auto const& e) { return static_cast<TargT>(e.count()); });
   }
 };
 
@@ -202,6 +194,8 @@ struct fixed_width_type_converter {
  * @brief Creates a `device_buffer` containing the elements in the range
  * `[begin,end)`.
  *
+ * @tparam ElementTo The type of element that is being created
+ * @tparam ElementFrom The type of element that is used to create elements of type `ElementTo`
  * @tparam InputIterator Iterator type for `begin` and `end`
  * @param begin Begining of the sequence of elements
  * @param end End of the sequence of elements
@@ -297,7 +291,9 @@ auto make_chars_and_offsets(StringsIterator begin, StringsIterator end, Validity
  * @brief `column_wrapper` derived class for wrapping columns of fixed-width
  * elements.
  *
- * @tparam Element The fixed-width element type
+ * @tparam ElementTo The fixed-width element type that is created
+ * @tparam SourceElementT The fixed-width element type that is used to create elements of type
+ * `ElementTo`
  **/
 template <typename ElementTo, typename SourceElementT = ElementTo>
 class fixed_width_column_wrapper : public detail::column_wrapper {
@@ -319,11 +315,11 @@ class fixed_width_column_wrapper : public detail::column_wrapper {
    * range `[begin,end)`.
    *
    * Example:
-   * ```c++
+   * @code{.cpp}
    * // Creates a non-nullable column of INT32 elements with 5 elements: {0, 2, 4, 6, 8}
    * auto elements = make_counting_transform_iterator(0, [](auto i){return i*2;});
    * fixed_width_column_wrapper<int32_t> w(elements, elements + 5);
-   * ```
+   * @endcode
    *
    * Note: similar to `std::vector`, this "range" constructor should be used
    *       with parentheses `()` and not braces `{}`. The latter should only
@@ -349,12 +345,12 @@ class fixed_width_column_wrapper : public detail::column_wrapper {
    * If `v[i] == true`, element `i` is valid, else it is null.
    *
    * Example:
-   * ```c++
+   * @code{.cpp}
    * // Creates a nullable column of INT32 elements with 5 elements: {null, 1, null, 3, null}
    * auto elements = make_counting_transform_iterator(0, [](auto i){return i;});
    * auto validity = make_counting_transform_iterator(0, [](auto i){return i%2;})
    * fixed_width_column_wrapper<int32_t> w(elements, elements + 5, validity);
-   * ```
+   * @endcode
    *
    * Note: similar to `std::vector`, this "range" constructor should be used
    *       with parentheses `()` and not braces `{}`. The latter should only
@@ -382,10 +378,10 @@ class fixed_width_column_wrapper : public detail::column_wrapper {
    * initializer list.
    *
    * Example:
-   * ```c++
+   * @code{.cpp}
    * // Creates a non-nullable INT32 column with 4 elements: {1, 2, 3, 4}
    * fixed_width_column_wrapper<int32_t> w{{1, 2, 3, 4}};
-   * ```
+   * @endcode
    *
    * @param element_list The list of elements
    **/
@@ -404,10 +400,10 @@ class fixed_width_column_wrapper : public detail::column_wrapper {
    * the element is null.
    *
    * Example:
-   * ```c++
+   * @code{.cpp}
    * // Creates a nullable INT32 column with 4 elements: {1, NULL, 3, NULL}
    * fixed_width_column_wrapper<int32_t> w{ {1,2,3,4}, {1, 0, 1, 0}};
-   * ```
+   * @endcode
    *
    * @param elements The list of elements
    * @param validity The list of validity indicator booleans
@@ -425,11 +421,11 @@ class fixed_width_column_wrapper : public detail::column_wrapper {
    * indicate the validity of each element.
    *
    * Example:
-   * ```c++
+   * @code{.cpp}
    * // Creates a nullable INT32 column with 4 elements: {NULL, 1, NULL, 3}
    * auto validity = make_counting_transform_iterator(0, [](auto i){return i%2;})
    * fixed_width_column_wrapper<int32_t> w{ {1,2,3,4}, validity}
-   * ```
+   * @endcode
    *
    * @tparam ValidityIterator Dereferencing a ValidityIterator must be
    * convertible to `bool`
@@ -451,9 +447,10 @@ class fixed_width_column_wrapper : public detail::column_wrapper {
    * the element is null.
    *
    * Example:
-   * ```c++
+   * @code{.cpp}
    * // Creates a nullable column of INT32 elements with 5 elements: {null, 1, null, 3, null}
    * fixed_width_column_wrapper<int32_t> w(elements, elements + 5, {0, 1, 0, 1, 0});
+   * @endcode
    *
    * @param begin The beginning of the sequence of elements
    * @param end The end of the sequence of elements
@@ -481,12 +478,12 @@ class strings_column_wrapper : public detail::column_wrapper {
    *`std::string` and a column will be created containing all of the strings.
    *
    * Example:
-   * ```c++
+   * @code{.cpp}
    * // Creates a non-nullable STRING column with 7 string elements:
    * // {"", "this", "is", "a", "column", "of", "strings"}
    * std::vector<std::string> strings{"", "this", "is", "a", "column", "of", "strings"};
    * strings_column_wrapper s(strings.begin(), strings.end());
-   * ```
+   * @endcode
    *
    * @tparam StringsIterator A `std::string` must be constructible from
    * dereferencing a `StringsIterator`.
@@ -515,13 +512,13 @@ class strings_column_wrapper : public detail::column_wrapper {
    * `*(begin+i)` is null, it's value is ignored and treated as an empty string.
    *
    * Example:
-   * ```c++
+   * @code{.cpp}
    * // Creates a nullable STRING column with 7 string elements:
    * // {NULL, "this", NULL, "a", NULL, "of", NULL}
    * std::vector<std::string> strings{"", "this", "is", "a", "column", "of", "strings"};
    * auto validity = make_counting_transform_iterator(0, [](auto i){return i%2;});
    * strings_column_wrapper s(strings.begin(), strings.end(), validity);
-   * ```
+   * @endcode
    *
    * @tparam StringsIterator A `std::string` must be constructible from
    * dereferencing a `StringsIterator`.
@@ -547,11 +544,11 @@ class strings_column_wrapper : public detail::column_wrapper {
    * @brief Construct a non-nullable column of strings from a list of strings.
    *
    * Example:
-   * ```c++
+   * @code{.cpp}
    * // Creates a non-nullable STRING column with 7 string elements:
    * // {"", "this", "is", "a", "column", "of", "strings"}
    * strings_column_wrapper s({"", "this", "is", "a", "column", "of", "strings"});
-   * ```
+   * @endcode
    *
    * @param strings The list of strings
    **/
@@ -566,12 +563,12 @@ class strings_column_wrapper : public detail::column_wrapper {
    * validity of each string.
    *
    * Example:
-   * ```c++
+   * @code{.cpp}
    * // Creates a nullable STRING column with 7 string elements:
    * // {NULL, "this", NULL, "a", NULL, "of", NULL}
    * auto validity = make_counting_transform_iterator(0, [](auto i){return i%2;});
    * strings_column_wrapper s({"", "this", "is", "a", "column", "of", "strings"}, validity);
-   * ```
+   * @endcode
    *
    * @tparam ValidityIterator Dereferencing a ValidityIterator must be
    * convertible to `bool`
@@ -589,12 +586,12 @@ class strings_column_wrapper : public detail::column_wrapper {
    * a list of booleans to indicate the validity of each string.
    *
    * Example:
-   * ```c++
+   * @code{.cpp}
    * // Creates a nullable STRING column with 7 string elements:
    * // {NULL, "this", NULL, "a", NULL, "of", NULL}
    * strings_column_wrapper s({"", "this", "is", "a", "column", "of", "strings"},
    *                          {0,1,0,1,0,1,0});
-   * ```
+   * @endcode
    *
    * @param strings The list of strings
    * @param validity The list of validity indicator booleans
