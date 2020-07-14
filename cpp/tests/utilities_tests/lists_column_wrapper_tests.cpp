@@ -51,8 +51,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, List)
   //    2, 3
   //
   {
-    test::lists_column_wrapper<T> list{cudf::test::make_type_param_scalar<T>(2),
-                                       cudf::test::make_type_param_scalar<T>(3)};
+    test::lists_column_wrapper<T, int32_t> list{2, 3};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 1);
@@ -77,8 +76,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, List)
   //    2, 3
   //
   {
-    test::lists_column_wrapper<T> list{
-      {cudf::test::make_type_param_scalar<T>(2), cudf::test::make_type_param_scalar<T>(3)}};
+    test::lists_column_wrapper<T, int32_t> list{{2, 3}};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 1);
@@ -112,9 +110,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, ListWithValidity)
   //    2, NULL
   //
   {
-    test::lists_column_wrapper<T> list{
-      {{cudf::test::make_type_param_scalar<T>(2), cudf::test::make_type_param_scalar<T>(3)},
-       valids}};
+    test::lists_column_wrapper<T, int32_t> list{{{2, 3}, valids}};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 1);
@@ -138,15 +134,8 @@ TYPED_TEST(ListColumnWrapperTestTyped, ListWithValidity)
   // Children :
   //    2, NULL, 4, NULL, 6, NULL, 8
   {
-    test::lists_column_wrapper<T> list{
-      {{cudf::test::make_type_param_scalar<T>(2), cudf::test::make_type_param_scalar<T>(3)},
-       valids},
-      {{cudf::test::make_type_param_scalar<T>(4), cudf::test::make_type_param_scalar<T>(5)},
-       valids},
-      {{cudf::test::make_type_param_scalar<T>(6),
-        cudf::test::make_type_param_scalar<T>(7),
-        cudf::test::make_type_param_scalar<T>(8)},
-       valids}};
+    test::lists_column_wrapper<T, int32_t> list{
+      {{2, 3}, valids}, {{4, 5}, valids}, {{6, 7, 8}, valids}};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 3);
@@ -179,7 +168,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, ListFromIterator)
   auto sequence = cudf::test::make_counting_transform_iterator(
     0, [](auto i) { return cudf::test::make_type_param_scalar<T>(i); });
 
-  test::lists_column_wrapper<T> list{sequence, sequence + 5};
+  test::lists_column_wrapper<T> list(sequence, sequence + 5);
 
   lists_column_view lcv(list);
   EXPECT_EQ(lcv.size(), 1);
@@ -247,9 +236,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, ListOfLists)
   //    Children :
   //      2, 3, 4, 5
   {
-    test::lists_column_wrapper<T> list{
-      {{cudf::test::make_type_param_scalar<T>(2), cudf::test::make_type_param_scalar<T>(3)},
-       {cudf::test::make_type_param_scalar<T>(4), cudf::test::make_type_param_scalar<T>(5)}}};
+    test::lists_column_wrapper<T, int32_t> list{{{2, 3}, {4, 5}}};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 1);
@@ -286,15 +273,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, ListOfLists)
   //    Children :
   //      1, 2, 3, 4, 5, 6, 7, 0, 8, 9, 10
   {
-    test::lists_column_wrapper<T> list{
-      {{cudf::test::make_type_param_scalar<T>(1), cudf::test::make_type_param_scalar<T>(2)},
-       {cudf::test::make_type_param_scalar<T>(3), cudf::test::make_type_param_scalar<T>(4)}},
-      {{cudf::test::make_type_param_scalar<T>(5),
-        cudf::test::make_type_param_scalar<T>(6),
-        cudf::test::make_type_param_scalar<T>(7)},
-       {cudf::test::make_type_param_scalar<T>(0)},
-       {cudf::test::make_type_param_scalar<T>(8)}},
-      {{cudf::test::make_type_param_scalar<T>(9), cudf::test::make_type_param_scalar<T>(10)}}};
+    test::lists_column_wrapper<T, int32_t> list{{{1, 2}, {3, 4}}, {{5, 6, 7}, {0}, {8}}, {{9, 10}}};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 3);
@@ -341,11 +320,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, ListOfListsWithValidity)
   //      2, NULL, 4, NULL
   {
     // equivalent to { {2, NULL}, {4, NULL} }
-    test::lists_column_wrapper<T> list{
-      {{{cudf::test::make_type_param_scalar<T>(2), cudf::test::make_type_param_scalar<T>(3)},
-        valids},
-       {{cudf::test::make_type_param_scalar<T>(4), cudf::test::make_type_param_scalar<T>(5)},
-        valids}}};
+    test::lists_column_wrapper<T, int32_t> list{{{{2, 3}, valids}, {{4, 5}, valids}}};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 1);
@@ -385,18 +360,8 @@ TYPED_TEST(ListColumnWrapperTestTyped, ListOfListsWithValidity)
   //      1, 2, 5, 6, 7, 8, 9, 10
   {
     // equivalent to  { {{1, 2}, NULL}, {{5, 6, 7}, NULL, {8}}, {{9, 10}} }
-    test::lists_column_wrapper<T> list{
-      {{{cudf::test::make_type_param_scalar<T>(1), cudf::test::make_type_param_scalar<T>(2)},
-        {cudf::test::make_type_param_scalar<T>(3), cudf::test::make_type_param_scalar<T>(4)}},
-       valids},
-      {{{cudf::test::make_type_param_scalar<T>(5),
-         cudf::test::make_type_param_scalar<T>(6),
-         cudf::test::make_type_param_scalar<T>(7)},
-        {cudf::test::make_type_param_scalar<T>(0)},
-        {cudf::test::make_type_param_scalar<T>(8)}},
-       valids},
-      {{{cudf::test::make_type_param_scalar<T>(9), cudf::test::make_type_param_scalar<T>(10)}},
-       valids}};
+    test::lists_column_wrapper<T, int32_t> list{
+      {{{1, 2}, {3, 4}}, valids}, {{{5, 6, 7}, {0}, {8}}, valids}, {{{9, 10}}, valids}};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 3);
@@ -450,20 +415,8 @@ TYPED_TEST(ListColumnWrapperTestTyped, ListOfListOfListsWithValidity)
   //        1, 2, 3, 4, 10, 20, 30, 40, 50, 60, 70, 0
   {
     // equivalent to  { {{{1, 2}, {3, 4}}, NULL}, {{{10, 20}, {30, 40}}, {{50, 60, 70}, {0}}} }
-    test::lists_column_wrapper<T> list{
-      {{{{cudf::test::make_type_param_scalar<T>(1), cudf::test::make_type_param_scalar<T>(2)},
-         {cudf::test::make_type_param_scalar<T>(3), cudf::test::make_type_param_scalar<T>(4)}},
-        {{cudf::test::make_type_param_scalar<T>(5),
-          cudf::test::make_type_param_scalar<T>(6),
-          cudf::test::make_type_param_scalar<T>(7)},
-         {cudf::test::make_type_param_scalar<T>(0)}}},
-       valids},
-      {{{cudf::test::make_type_param_scalar<T>(10), cudf::test::make_type_param_scalar<T>(20)},
-        {cudf::test::make_type_param_scalar<T>(30), cudf::test::make_type_param_scalar<T>(40)}},
-       {{cudf::test::make_type_param_scalar<T>(50),
-         cudf::test::make_type_param_scalar<T>(60),
-         cudf::test::make_type_param_scalar<T>(70)},
-        {cudf::test::make_type_param_scalar<T>(0)}}}};
+    test::lists_column_wrapper<T, int32_t> list{{{{{1, 2}, {3, 4}}, {{5, 6, 7}, {0}}}, valids},
+                                                {{{10, 20}, {30, 40}}, {{50, 60, 70}, {0}}}};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 2);
@@ -506,7 +459,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, EmptyLists)
   using T = TypeParam;
 
   // to disambiguiate between {} == 0 and {} == List{0}
-  using LCW = test::lists_column_wrapper<T>;
+  using LCW = test::lists_column_wrapper<T, int32_t>;
 
   // List<T>, empty
   //
@@ -530,7 +483,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, EmptyLists)
   // Children :
   {
     // equivalent to  {}
-    test::lists_column_wrapper<T> list{LCW{}};
+    test::lists_column_wrapper<T, int32_t> list{LCW{}};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 1);
@@ -549,7 +502,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, EmptyLists)
   // Children :
   {
     // equivalent to  {}
-    test::lists_column_wrapper<T> list{LCW{}, LCW{}};
+    test::lists_column_wrapper<T, int32_t> list{LCW{}, LCW{}};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 2);
@@ -570,10 +523,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, EmptyLists)
   {
     // equivalent to  {{1, 2}, {}, {3, 4}}
 
-    test::lists_column_wrapper<T> list{
-      {cudf::test::make_type_param_scalar<T>(1), cudf::test::make_type_param_scalar<T>(2)},
-      LCW{},
-      {cudf::test::make_type_param_scalar<T>(3), cudf::test::make_type_param_scalar<T>(4)}};
+    test::lists_column_wrapper<T, int32_t> list{{1, 2}, LCW{}, {3, 4}};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 3);
@@ -602,17 +552,8 @@ TYPED_TEST(ListColumnWrapperTestTyped, EmptyLists)
   //     1, 2, 3, 4, 5, 6, 7, 8
   {
     // equivalent to  { {{}}, {{1, 2}, {}, {3, 4}}, {{}, {5, 6, 7, 8}, {}} }
-    test::lists_column_wrapper<T> list{
-      {LCW{}},
-      {{cudf::test::make_type_param_scalar<T>(1), cudf::test::make_type_param_scalar<T>(2)},
-       LCW{},
-       {cudf::test::make_type_param_scalar<T>(3), cudf::test::make_type_param_scalar<T>(4)}},
-      {LCW{},
-       {cudf::test::make_type_param_scalar<T>(5),
-        cudf::test::make_type_param_scalar<T>(6),
-        cudf::test::make_type_param_scalar<T>(7),
-        cudf::test::make_type_param_scalar<T>(8)},
-       LCW{}}};
+    test::lists_column_wrapper<T, int32_t> list{
+      {LCW{}}, {{1, 2}, LCW{}, {3, 4}}, {LCW{}, {5, 6, 7, 8}, LCW{}}};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 3);
@@ -644,7 +585,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, EmptyListsWithValidity)
   using T = TypeParam;
 
   // to disambiguiate between {} == 0 and {} == List{0}
-  using LCW = test::lists_column_wrapper<T>;
+  using LCW = test::lists_column_wrapper<T, int32_t>;
 
   auto valids = cudf::test::make_counting_transform_iterator(
     0, [](auto i) { return i % 2 == 0 ? true : false; });
@@ -659,7 +600,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, EmptyListsWithValidity)
   // Children :
   {
     // equivalent to  {{}, NULL}
-    test::lists_column_wrapper<T> list{{LCW{}, LCW{}}, valids};
+    test::lists_column_wrapper<T, int32_t> list{{LCW{}, LCW{}}, valids};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 2);
@@ -681,12 +622,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, EmptyListsWithValidity)
   // Children :
   {
     // equivalent to  {{}, NULL, {}}
-    test::lists_column_wrapper<T> list{{LCW{},
-                                        {cudf::test::make_type_param_scalar<T>(1),
-                                         cudf::test::make_type_param_scalar<T>(2),
-                                         cudf::test::make_type_param_scalar<T>(3)},
-                                        LCW{}},
-                                       valids};
+    test::lists_column_wrapper<T, int32_t> list{{LCW{}, {1, 2, 3}, LCW{}}, valids};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 3);
@@ -709,12 +645,7 @@ TYPED_TEST(ListColumnWrapperTestTyped, EmptyListsWithValidity)
   //   1, 2, 3
   {
     // equivalent to  {{}, NULL, {1, 2, 3}}
-    test::lists_column_wrapper<T> list{{LCW{},
-                                        LCW{},
-                                        {cudf::test::make_type_param_scalar<T>(1),
-                                         cudf::test::make_type_param_scalar<T>(2),
-                                         cudf::test::make_type_param_scalar<T>(3)}},
-                                       valids};
+    test::lists_column_wrapper<T, int32_t> list{{LCW{}, LCW{}, {1, 2, 3}}, valids};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 3);
@@ -741,18 +672,8 @@ TYPED_TEST(ListColumnWrapperTestTyped, EmptyListsWithValidity)
   //     5, 6, 7, 8
   {
     // equivalent to  { {{}}, NULL, {{}, {5, 6, 7, 8}, {}} }
-    test::lists_column_wrapper<T> list{
-      {{LCW{}},
-       {{cudf::test::make_type_param_scalar<T>(1), cudf::test::make_type_param_scalar<T>(2)},
-        LCW{},
-        {cudf::test::make_type_param_scalar<T>(3), cudf::test::make_type_param_scalar<T>(4)}},
-       {LCW{},
-        {cudf::test::make_type_param_scalar<T>(5),
-         cudf::test::make_type_param_scalar<T>(6),
-         cudf::test::make_type_param_scalar<T>(7),
-         cudf::test::make_type_param_scalar<T>(8)},
-        LCW{}}},
-      valids};
+    test::lists_column_wrapper<T, int32_t> list{
+      {{LCW{}}, {{1, 2}, LCW{}, {3, 4}}, {LCW{}, {5, 6, 7, 8}, LCW{}}}, valids};
 
     lists_column_view lcv(list);
     EXPECT_EQ(lcv.size(), 3);
