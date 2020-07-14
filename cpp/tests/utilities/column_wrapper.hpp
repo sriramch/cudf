@@ -105,88 +105,44 @@ class column_wrapper {
 /**
  * @brief Convert between source and target types when they differ and where possible.
  **/
-template <typename SourceT, typename TargetT>
+template <typename From, typename To>
 struct fixed_width_type_converter {
   // Are the types same - simply copy elements from [begin, end) to out
-  template <typename SrcT  = SourceT,
-            typename TargT = TargetT,
+  template <typename FromT = From,
+            typename ToT   = To,
             typename InputIterator,
             typename OutputIterator,
-            typename std::enable_if<std::is_same<SrcT, TargT>::value, void>::type* = nullptr>
+            typename std::enable_if<std::is_same<FromT, ToT>::value, void>::type* = nullptr>
   void operator()(InputIterator begin, InputIterator end, OutputIterator out) const
   {
     std::copy(begin, end, out);
   }
 
   // Are the types convertible or can target be constructed from source?
-  template <typename SrcT  = SourceT,
-            typename TargT = TargetT,
+  template <typename FromT = From,
+            typename ToT   = To,
             typename InputIterator,
             typename OutputIterator,
-            typename std::enable_if<!std::is_same<SrcT, TargT>::value &&
-                                      (cudf::is_convertible<SrcT, TargT>::value ||
-                                       std::is_constructible<TargT, SrcT>::value),
+            typename std::enable_if<!std::is_same<FromT, ToT>::value &&
+                                      (cudf::is_convertible<FromT, ToT>::value ||
+                                       std::is_constructible<ToT, FromT>::value),
                                     void>::type* = nullptr>
   void operator()(InputIterator begin, InputIterator end, OutputIterator out) const
   {
-    std::transform(begin, end, out, [](auto const& e) { return static_cast<TargT>(e); });
+    std::transform(begin, end, out, [](auto const& e) { return static_cast<ToT>(e); });
   }
 
-  // This is to be used when timestamp disallows construction from tick counts; presently,
-  // this conflicts with the convertible/constructible overload
   // Convert integral values to timestamps
   template <
-    typename SrcT  = SourceT,
-    typename TargT = TargetT,
+    typename FromT = From,
+    typename ToT   = To,
     typename InputIterator,
     typename OutputIterator,
-    typename std::enable_if<std::is_integral<SrcT>::value && cudf::is_timestamp_t<TargT>::value,
+    typename std::enable_if<std::is_integral<FromT>::value && cudf::is_timestamp_t<ToT>::value,
                             void>::type* = nullptr>
   void operator()(InputIterator begin, InputIterator end, OutputIterator out) const
   {
-      std::transform(
-      begin, end, out, [](auto const& e) { return TargT{typename TargT::duration{e}}; });
-  }
-
-  // Convert timestamps to arithmetic values
-  template <
-    typename SrcT  = SourceT,
-    typename TargT = TargetT,
-    typename InputIterator,
-    typename OutputIterator,
-    typename std::enable_if<cudf::is_timestamp_t<SrcT>::value && std::is_arithmetic<TargT>::value,
-                            void>::type* = nullptr>
-  void operator()(InputIterator begin, InputIterator end, OutputIterator out) const
-  {
-    std::transform(begin, end, out, [](auto const& e) {
-      return static_cast<TargT>(e.time_since_epoch().count());
-    });
-  }
-
-  // Convert timestamps to duration values
-  template <
-    typename SrcT  = SourceT,
-    typename TargT = TargetT,
-    typename InputIterator,
-    typename OutputIterator,
-    typename std::enable_if<cudf::is_timestamp_t<SrcT>::value && cudf::is_duration_t<TargT>::value,
-                            void>::type* = nullptr>
-  void operator()(InputIterator begin, InputIterator end, OutputIterator out) const
-  {
-    std::transform(begin, end, out, [](auto const& e) { return TargT{e.time_since_epoch()}; });
-  }
-
-  // Convert duration to arithmetic values
-  template <
-    typename SrcT  = SourceT,
-    typename TargT = TargetT,
-    typename InputIterator,
-    typename OutputIterator,
-    typename std::enable_if<cudf::is_duration_t<SrcT>::value && std::is_arithmetic<TargT>::value,
-                            void>::type* = nullptr>
-  void operator()(InputIterator begin, InputIterator end, OutputIterator out) const
-  {
-    std::transform(begin, end, out, [](auto const& e) { return static_cast<TargT>(e.count()); });
+    std::transform(begin, end, out, [](auto const& e) { return ToT{typename ToT::duration{e}}; });
   }
 };
 
@@ -606,7 +562,7 @@ class strings_column_wrapper : public detail::column_wrapper {
 /**
  * @brief `column_wrapper` derived class for wrapping columns of lists.
  */
-template <typename T>
+template <typename T, typename SourceElementT = T>
 class lists_column_wrapper : public detail::column_wrapper {
  public:
   /**
@@ -622,10 +578,13 @@ class lists_column_wrapper : public detail::column_wrapper {
    *
    * @param elements The list of elements
    */
-  template <typename Element = T, std::enable_if_t<cudf::is_fixed_width<Element>()>* = nullptr>
-  lists_column_wrapper(std::initializer_list<T> elements) : column_wrapper{}
+  template <typename Element = T,
+            typename ElementFrom,
+            std::enable_if_t<cudf::is_fixed_width<Element>()>* = nullptr>
+  lists_column_wrapper(std::initializer_list<ElementFrom> elements) : column_wrapper{}
   {
-    build_from_non_nested(std::move(cudf::test::fixed_width_column_wrapper<T>(elements).release()));
+    build_from_non_nested(
+      std::move(cudf::test::fixed_width_column_wrapper<T, SourceElementT>(elements).release()));
   }
 
   /**
@@ -649,7 +608,8 @@ class lists_column_wrapper : public detail::column_wrapper {
   lists_column_wrapper(InputIterator begin, InputIterator end) : column_wrapper{}
   {
     build_from_non_nested(std::move(
-      cudf::test::fixed_width_column_wrapper<typename InputIterator::value_type>(begin, end)
+      cudf::test::fixed_width_column_wrapper<typename InputIterator::value_type, SourceElementT>(
+        begin, end)
         .release()));
   }
 
@@ -669,12 +629,14 @@ class lists_column_wrapper : public detail::column_wrapper {
    * @param v The validity iterator
    */
   template <typename Element = T,
+            typename ElementFrom,
             typename ValidityIterator,
             std::enable_if_t<cudf::is_fixed_width<Element>()>* = nullptr>
-  lists_column_wrapper(std::initializer_list<T> elements, ValidityIterator v) : column_wrapper{}
+  lists_column_wrapper(std::initializer_list<ElementFrom> elements, ValidityIterator v)
+    : column_wrapper{}
   {
     build_from_non_nested(
-      std::move(cudf::test::fixed_width_column_wrapper<T>(elements, v).release()));
+      std::move(cudf::test::fixed_width_column_wrapper<T, SourceElementT>(elements, v).release()));
   }
 
   /**
@@ -701,8 +663,8 @@ class lists_column_wrapper : public detail::column_wrapper {
   lists_column_wrapper(InputIterator begin, InputIterator end, ValidityIterator v)
     : column_wrapper{}
   {
-    build_from_non_nested(
-      std::move(cudf::test::fixed_width_column_wrapper<T>(begin, end, v).release()));
+    build_from_non_nested(std::move(
+      cudf::test::fixed_width_column_wrapper<T, SourceElementT>(begin, end, v).release()));
   }
 
   /**
@@ -772,7 +734,8 @@ class lists_column_wrapper : public detail::column_wrapper {
    *
    * @param elements The list of elements
    */
-  lists_column_wrapper(std::initializer_list<lists_column_wrapper<T>> elements) : column_wrapper{}
+  lists_column_wrapper(std::initializer_list<lists_column_wrapper<T, SourceElementT>> elements)
+    : column_wrapper{}
   {
     std::vector<bool> valids;
     build_from_nested(elements, valids);
@@ -820,7 +783,8 @@ class lists_column_wrapper : public detail::column_wrapper {
    * @param v The validity iterator
    */
   template <typename ValidityIterator>
-  lists_column_wrapper(std::initializer_list<lists_column_wrapper<T>> elements, ValidityIterator v)
+  lists_column_wrapper(std::initializer_list<lists_column_wrapper<T, SourceElementT>> elements,
+                       ValidityIterator v)
     : column_wrapper{}
   {
     std::vector<bool> validity;
@@ -848,7 +812,7 @@ class lists_column_wrapper : public detail::column_wrapper {
    * @param c Input column to be wrapped
    *
    */
-  void build_from_nested(std::initializer_list<lists_column_wrapper<T>> elements,
+  void build_from_nested(std::initializer_list<lists_column_wrapper<T, SourceElementT>> elements,
                          std::vector<bool> const& v)
   {
     auto valids = cudf::test::make_counting_transform_iterator(
